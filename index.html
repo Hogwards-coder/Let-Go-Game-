@@ -5,6 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Let Go Game</title>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Wave animation effect */
+    #animation-screen {
+      position: relative;
+      text-align: center;
+      color: white;
+    }
+
+    .background {
+      width: 100%;
+      height: 100vh;
+      object-fit: cover;
+      animation: waveWash 2s ease-in-out forwards;
+    }
+
+    #quote {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      max-width: 80%;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1s ease-in;
+    }
+
+    @keyframes waveWash {
+      from { opacity: 1; }
+      to { opacity: 0.7; }
+    }
+
+    #quote.visible {
+      opacity: 1;
+    }
+  </style>
 </head>
 <body>
   <audio id="bg-sound" src="assets/sounds/beach-sound-with-seagulls-218923.mp3" loop autoplay></audio>
@@ -61,6 +97,7 @@
     const quoteEl = document.getElementById('quote');
     const animationScreen = document.getElementById('animation-screen');
     const overlay = document.getElementById('overlay');
+    const waveSound = document.getElementById('wave-sound');
 
     let streak = parseInt(localStorage.getItem('streak')) || 0;
     let points = parseInt(localStorage.getItem('points')) || 0;
@@ -104,6 +141,10 @@
     releaseBtn.addEventListener('click', () => {
       if (!canPlayToday()) return;
 
+      // Play wave sound
+      waveSound.currentTime = 0;
+      waveSound.play();
+
       // Increase streak and points
       streak++;
       points += 10;
@@ -121,10 +162,17 @@
       history.push({ date: today, points: points });
       localStorage.setItem('history', JSON.stringify(history));
 
-      // Show one random quote
-      quoteEl.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+      // Hide overlay, show animation screen
       overlay.classList.add('hidden');
       animationScreen.classList.remove('hidden');
+
+      // Delay before showing quote
+      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      quoteEl.classList.remove('visible');
+      setTimeout(() => {
+        quoteEl.textContent = randomQuote;
+        quoteEl.classList.add('visible');
+      }, 2000); // show after 2 seconds
     });
 
     historyBtn.addEventListener('click', () => {
@@ -143,5 +191,61 @@
       overlay.classList.remove('hidden');
     });
   </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Let Go Game</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #history { display: none; margin-top: 20px; }
+        .thought-entry { border-bottom: 1px solid #ccc; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Let Go Game</h1>
+    <div id="game"></div>
+    <button id="playButton">Play Game</button>
+    <button id="historyButton">View History</button>
+    <div id="history"></div>
+
+    <script>
+        let historyData = JSON.parse(localStorage.getItem('historyData')) || [];
+
+        function updateHistoryDisplay() {
+            let historyDiv = document.getElementById('history');
+            historyDiv.innerHTML = '<h2>History</h2>';
+            if (historyData.length === 0) {
+                let today = new Date().toLocaleDateString();
+                historyDiv.innerHTML += `<p>No games played yet, but today's date is ${today}.</p>`;
+            } else {
+                historyData.forEach(entry => {
+                    historyDiv.innerHTML += `<div class='thought-entry'><strong>${entry.date}</strong> - Thought: ${entry.thought} - Points: ${entry.points}</div>`;
+                });
+            }
+            historyDiv.style.display = 'block';
+        }
+
+        document.getElementById('historyButton').onclick = function() {
+            updateHistoryDisplay();
+        };
+
+        document.getElementById('playButton').onclick = function() {
+            let today = new Date().toLocaleDateString();
+            let thought = prompt('Enter the thought you want to let go of:');
+            if (thought) {
+                let points = 10;
+                historyData.push({ date: today, thought: thought, points: points });
+                localStorage.setItem('historyData', JSON.stringify(historyData));
+                alert('🌊 Waves wash your thought away... You receive a quote in return: "Letting go gives us freedom."');
+                updateHistoryDisplay();
+            }
+        };
+
+        updateHistoryDisplay();
+    </script>
 </body>
 </html>
