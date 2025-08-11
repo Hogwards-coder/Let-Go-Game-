@@ -4,111 +4,116 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Let Go Game</title>
-  <link rel="stylesheet" href="style.css"/>
   <style>
-    /* Wave animation effect */
-    #animation-screen {
-      position: relative;
-      text-align: center;
-      color: white;
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f8ff; }
+    #overlay { text-align: center; padding: 20px; }
+    .game-box { max-width: 400px; margin: auto; }
+    .game-box input, .game-box textarea, select, button {
+      width: 90%; padding: 8px; margin: 5px auto; display: block; font-size: 1rem;
     }
-
+    #stats { margin-top: 10px; font-size: 1rem; }
+    #history-screen, #history { display: none; padding: 10px; text-align: left; }
+    .thought-entry { border-bottom: 1px solid #ccc; padding: 5px; }
+    /* Animation Screen */
+    #animation-screen { 
+      display: none; 
+      position: relative; 
+      text-align: center; 
+      color: white; 
+      height: 100vh; 
+      overflow: hidden;
+    }
     .background {
-      width: 100%;
-      height: 100vh;
-      object-fit: cover;
-      animation: waveWash 2s ease-in-out forwards;
+      width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;
     }
-
     #quote {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.5rem;
-      max-width: 80%;
-      text-align: center;
-      opacity: 0;
-      transition: opacity 1s ease-in;
+      position: absolute; 
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 1.5rem; max-width: 80%; text-align: center;
+      opacity: 0; transition: opacity 1s ease-in;
     }
-
-    @keyframes waveWash {
-      from { opacity: 1; }
-      to { opacity: 0.7; }
+    @keyframes fadeOut {
+      0%, 80% { opacity: 1; }
+      100% { opacity: 0; }
     }
-
-    #quote.visible {
-      opacity: 1;
+    #quote.visible { animation: fadeOut 4s forwards; opacity: 1; }
+    /* Mobile responsiveness */
+    @media (max-width: 600px) {
+      #quote { font-size: 1.2rem; }
     }
   </style>
 </head>
 <body>
+  <!-- Sounds -->
   <audio id="bg-sound" src="assets/sounds/beach-sound-with-seagulls-218923.mp3" loop autoplay></audio>
-  <audio id="typing-sound" src="assets/sounds/rumble-tension-horror-370001.mp3" loop></audio>
   <audio id="wave-sound" src="assets/sounds/ocean-beach-waves-332383.mp3"></audio>
-  <audio id="alert-sound" src="assets/sounds/alert.mp3"></audio>
 
+  <!-- Main Game UI -->
   <div id="overlay">
     <div class="game-box">
-      <h1>Let go of...</h1>
+      <h1>Let Go Game</h1>
       <input type="text" id="thought1" placeholder="Thought 1"/>
       <input type="text" id="thought2" placeholder="Thought 2"/>
       <input type="text" id="thought3" placeholder="Thought 3"/>
-      <div class="controls">
-        <select id="thought-picker">
-          <option value="1">Thought 1</option>
-          <option value="2">Thought 2</option>
-          <option value="3">Thought 3</option>
-        </select>
-        <button id="release-btn">Let it go</button>
-      </div>
+      <select id="thought-picker">
+        <option value="1">Thought 1</option>
+        <option value="2">Thought 2</option>
+        <option value="3">Thought 3</option>
+      </select>
+      <button id="release-btn">Let it go</button>
       <button id="history-btn">Show History</button>
     </div>
-    <div id="stats">Streak: <span id="streak">0</span> week(s)<br>Points: <span id="points">0</span></div>
+    <div id="stats">Streak: <span id="streak">0</span> week(s) | Points: <span id="points">0</span></div>
   </div>
 
-  <div id="animation-screen" class="hidden">
-    <img src="assets/images/openart-image_GMAU2cag_1751971380639_raw.jpg" class="background"/>
+  <!-- Animation Screen -->
+  <div id="animation-screen">
+    <img src="assets/images/openart-image_GMAU2cag_1751971380639_raw.jpg" class="background" alt="Wave background"/>
     <div id="quote"></div>
   </div>
 
-  <div id="history-screen" class="hidden">
+  <!-- History Screen -->
+  <div id="history-screen">
     <h2>Game History</h2>
-    <ul id="history-list"></ul>
+    <div id="history"></div>
     <button id="close-history">Close</button>
   </div>
 
   <script>
     const quotes = [
       "You are not the thought, you are the awareness behind it.",
-      "Letting go means to come to the realization that some people are a part of your history, but not a part of your destiny.",
-      "Happiness is letting go of what you think your life is supposed to look like.",
-      "Breathe. Let go. And remind yourself that this very moment is the only one you know you have for sure.",
-      "Sometimes letting things go is an act of far greater power than defending or hanging on."
+      "Letting go means realizing some people are part of your history, but not your destiny.",
+      "Happiness is letting go of what you think life should be.",
+      "Breathe. Let go. This moment is the only one you know for sure.",
+      "Sometimes letting go is more powerful than hanging on.",
+      "Let it go and grow.",
+      "Release to find peace.",
+      "Breathe out the past.",
+      "Freedom is letting go."
     ];
 
     const streakEl = document.getElementById('streak');
     const pointsEl = document.getElementById('points');
     const releaseBtn = document.getElementById('release-btn');
     const historyBtn = document.getElementById('history-btn');
-    const historyScreen = document.getElementById('history-screen');
-    const closeHistoryBtn = document.getElementById('close-history');
-    const historyList = document.getElementById('history-list');
+    const historyDiv = document.getElementById('history');
     const quoteEl = document.getElementById('quote');
     const animationScreen = document.getElementById('animation-screen');
     const overlay = document.getElementById('overlay');
     const waveSound = document.getElementById('wave-sound');
+    const closeHistoryBtn = document.getElementById('close-history');
+    const historyScreen = document.getElementById('history-screen');
 
     let streak = parseInt(localStorage.getItem('streak')) || 0;
     let points = parseInt(localStorage.getItem('points')) || 0;
     let lastPlayed = localStorage.getItem('lastPlayed') || null;
-    let history = JSON.parse(localStorage.getItem('history')) || [];
+    let historyData = JSON.parse(localStorage.getItem('historyData')) || [];
 
     streakEl.textContent = streak;
     pointsEl.textContent = points;
 
     function isMonday() {
-      return new Date().getDay() === 1; // 1 = Monday
+      return new Date().getDay() === 1;
     }
 
     function canPlayToday() {
@@ -116,136 +121,88 @@
         alert("Let's meet next week!");
         return false;
       }
-
       let today = new Date().toDateString();
-
       if (lastPlayed === today) {
         alert("You have already played this Monday!");
         return false;
       }
-
-      // Streak handling
       if (lastPlayed) {
         let lastDate = new Date(lastPlayed);
         let diffWeeks = Math.floor((new Date() - lastDate) / (1000 * 60 * 60 * 24 * 7));
-
         if (diffWeeks > 1) {
           streak = 0;
           points = 0;
         }
       }
-
       return true;
+    }
+
+    function updateHistoryDisplay() {
+      historyDiv.innerHTML = '';
+      if (historyData.length === 0) {
+        let today = new Date().toLocaleDateString();
+        historyDiv.innerHTML = `<p>No games played yet, but today's date is ${today}.</p>`;
+      } else {
+        historyData.forEach(entry => {
+          historyDiv.innerHTML += `<div class='thought-entry'><strong>${entry.date}</strong> - Thought: ${entry.thought} - Points: ${entry.points}</div>`;
+        });
+      }
     }
 
     releaseBtn.addEventListener('click', () => {
       if (!canPlayToday()) return;
 
-      // Play wave sound
+      let pickerValue = document.getElementById('thought-picker').value;
+      let thoughtInput = document.getElementById('thought' + pickerValue);
+      let thought = thoughtInput.value.trim();
+      if (!thought) {
+        alert("Please enter a thought to let go of.");
+        return;
+      }
+
       waveSound.currentTime = 0;
       waveSound.play();
 
-      // Increase streak and points
       streak++;
       points += 10;
-
       streakEl.textContent = streak;
       pointsEl.textContent = points;
 
-      let today = new Date().toDateString();
-      lastPlayed = today;
-      localStorage.setItem('lastPlayed', today);
+      let today = new Date().toLocaleDateString();
+      lastPlayed = new Date().toDateString();
+      localStorage.setItem('lastPlayed', lastPlayed);
       localStorage.setItem('streak', streak);
       localStorage.setItem('points', points);
 
-      // Save history
-      history.push({ date: today, points: points });
-      localStorage.setItem('history', JSON.stringify(history));
+      historyData.push({ date: today, thought: thought, points: points });
+      localStorage.setItem('historyData', JSON.stringify(historyData));
 
-      // Hide overlay, show animation screen
-      overlay.classList.add('hidden');
-      animationScreen.classList.remove('hidden');
+      overlay.style.display = 'none';
+      animationScreen.style.display = 'block';
 
-      // Delay before showing quote
       const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      quoteEl.textContent = randomQuote;
       quoteEl.classList.remove('visible');
       setTimeout(() => {
-        quoteEl.textContent = randomQuote;
         quoteEl.classList.add('visible');
-      }, 2000); // show after 2 seconds
+      }, 500);
+
+      setTimeout(() => {
+        animationScreen.style.display = 'none';
+        overlay.style.display = 'block';
+      }, 4500);
     });
 
     historyBtn.addEventListener('click', () => {
-      historyList.innerHTML = '';
-      history.forEach(entry => {
-        let li = document.createElement('li');
-        li.textContent = `${entry.date} - ${entry.points} points`;
-        historyList.appendChild(li);
-      });
-      historyScreen.classList.remove('hidden');
-      overlay.classList.add('hidden');
+      updateHistoryDisplay();
+      historyScreen.style.display = 'block';
+      overlay.style.display = 'none';
     });
 
     closeHistoryBtn.addEventListener('click', () => {
-      historyScreen.classList.add('hidden');
-      overlay.classList.remove('hidden');
+      historyScreen.style.display = 'none';
+      overlay.style.display = 'block';
     });
   </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Let Go Game</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #history { display: none; margin-top: 20px; }
-        .thought-entry { border-bottom: 1px solid #ccc; padding: 5px; }
-    </style>
-</head>
-<body>
-    <h1>Let Go Game</h1>
-    <div id="game"></div>
-    <button id="playButton">Play Game</button>
-    <button id="historyButton">View History</button>
-    <div id="history"></div>
-
-    <script>
-        let historyData = JSON.parse(localStorage.getItem('historyData')) || [];
-
-        function updateHistoryDisplay() {
-            let historyDiv = document.getElementById('history');
-            historyDiv.innerHTML = '<h2>History</h2>';
-            if (historyData.length === 0) {
-                let today = new Date().toLocaleDateString();
-                historyDiv.innerHTML += `<p>No games played yet, but today's date is ${today}.</p>`;
-            } else {
-                historyData.forEach(entry => {
-                    historyDiv.innerHTML += `<div class='thought-entry'><strong>${entry.date}</strong> - Thought: ${entry.thought} - Points: ${entry.points}</div>`;
-                });
-            }
-            historyDiv.style.display = 'block';
-        }
-
-        document.getElementById('historyButton').onclick = function() {
-            updateHistoryDisplay();
-        };
-
-        document.getElementById('playButton').onclick = function() {
-            let today = new Date().toLocaleDateString();
-            let thought = prompt('Enter the thought you want to let go of:');
-            if (thought) {
-                let points = 10;
-                historyData.push({ date: today, thought: thought, points: points });
-                localStorage.setItem('historyData', JSON.stringify(historyData));
-                alert('🌊 Waves wash your thought away... You receive a quote in return: "Letting go gives us freedom."');
-                updateHistoryDisplay();
-            }
-        };
-
-        updateHistoryDisplay();
-    </script>
 </body>
 </html>
