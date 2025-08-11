@@ -2,41 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Let Go Game</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f8ff; }
     #overlay { text-align: center; padding: 20px; }
-    .game-box { max-width: 400px; margin: auto; }
-    .game-box input, .game-box textarea, select, button {
+    .game-box { max-width: 400px; margin: auto; position: relative; }
+    .game-box input, select, button {
       width: 90%; padding: 8px; margin: 5px auto; display: block; font-size: 1rem;
+      position: relative;
+      z-index: 1;
     }
     #stats { margin-top: 10px; font-size: 1rem; }
     #history-screen, #history { display: none; padding: 10px; text-align: left; }
-    .thought-entry { border-bottom: 1px solid #ccc; padding: 5px; }
+    .thought-entry {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 5px;
+      margin-bottom: 5px;
+      background: #e6f0ff;
+      border-radius: 4px;
+    }
     /* Animation Screen */
-    #animation-screen { 
-      display: none; 
-      position: relative; 
-      text-align: center; 
-      color: white; 
-      height: 100vh; 
+    #animation-screen {
+      display: none;
+      position: relative;
+      text-align: center;
+      color: white;
+      height: 100vh;
       overflow: hidden;
     }
     .background {
       width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;
+      z-index: 0;
     }
     #quote {
-      position: absolute; 
+      position: absolute;
       top: 50%; left: 50%; transform: translate(-50%, -50%);
       font-size: 1.5rem; max-width: 80%; text-align: center;
       opacity: 0; transition: opacity 1s ease-in;
+      z-index: 2;
+      padding: 10px 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 8px;
     }
-    @keyframes fadeOut {
-      0%, 80% { opacity: 1; }
-      100% { opacity: 0; }
+    #quote.visible { opacity: 1; }
+
+    /* Thought washing away animation */
+    .wash-away {
+      position: relative;
+      animation: washAwayAnim 3s forwards;
+      color: transparent;
+      text-shadow: 0 0 8px rgba(255,255,255,0.7);
     }
-    #quote.visible { animation: fadeOut 4s forwards; opacity: 1; }
+
+    @keyframes washAwayAnim {
+      0% {
+        filter: none;
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      50% {
+        filter: blur(4px);
+        opacity: 0.7;
+        transform: scale(1.1) translateY(-10px);
+      }
+      100% {
+        filter: blur(8px);
+        opacity: 0;
+        transform: scale(1.3) translateY(-30px);
+      }
+    }
+
     /* Mobile responsiveness */
     @media (max-width: 600px) {
       #quote { font-size: 1.2rem; }
@@ -46,7 +82,10 @@
 <body>
   <!-- Sounds -->
   <audio id="bg-sound" src="assets/sounds/beach-sound-with-seagulls-218923.mp3" loop autoplay></audio>
-  <audio id="wave-sound" src="assets/sounds/ocean-beach-waves-332383.mp3"></audio>
+  <audio id="wave-sound" src="assets/sounds/relaxing-rain-387677.mp3"></audio>
+  <!-- New sounds to add for wash and quote reveal -->
+  <audio id="wash-sound" src="assets/sounds/soothing-ocean-waves-372489.mp3"></audio>
+  <audio id="quote-sound" src="assets/sounds/quote-reveal.mp3"></audio>
 
   <!-- Main Game UI -->
   <div id="overlay">
@@ -101,6 +140,8 @@
     const animationScreen = document.getElementById('animation-screen');
     const overlay = document.getElementById('overlay');
     const waveSound = document.getElementById('wave-sound');
+    const washSound = document.getElementById('wash-sound');
+    const quoteSound = document.getElementById('quote-sound');
     const closeHistoryBtn = document.getElementById('close-history');
     const historyScreen = document.getElementById('history-screen');
 
@@ -143,8 +184,16 @@
         let today = new Date().toLocaleDateString();
         historyDiv.innerHTML = `<p>No games played yet, but today's date is ${today}.</p>`;
       } else {
+        // Sort history descending by date
+        historyData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
         historyData.forEach(entry => {
-          historyDiv.innerHTML += `<div class='thought-entry'><strong>${entry.date}</strong> - Thought: ${entry.thought} - Points: ${entry.points}</div>`;
+          historyDiv.innerHTML += `
+            <div class='thought-entry'>
+              <strong>Date:</strong> ${entry.date} <br/>
+              <strong>Thought:</strong> ${entry.thought} <br/>
+              <strong>Points:</strong> ${entry.points}
+            </div>`;
         });
       }
     }
@@ -160,37 +209,59 @@
         return;
       }
 
+      // Play wave sound
       waveSound.currentTime = 0;
       waveSound.play();
 
-      streak++;
-      points += 10;
-      streakEl.textContent = streak;
-      pointsEl.textContent = points;
+      // Play wash sound
+      washSound.currentTime = 0;
+      washSound.play();
 
-      let today = new Date().toLocaleDateString();
-      lastPlayed = new Date().toDateString();
-      localStorage.setItem('lastPlayed', lastPlayed);
-      localStorage.setItem('streak', streak);
-      localStorage.setItem('points', points);
+      // Animate thought washing away
+      thoughtInput.classList.add('wash-away');
 
-      historyData.push({ date: today, thought: thought, points: points });
-      localStorage.setItem('historyData', JSON.stringify(historyData));
-
-      overlay.style.display = 'none';
-      animationScreen.style.display = 'block';
-
-      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      quoteEl.textContent = randomQuote;
-      quoteEl.classList.remove('visible');
+      // After animation ends (~3s), clear thought and show quote
       setTimeout(() => {
+        // Clear the thought input visually and from value
+        thoughtInput.value = '';
+        thoughtInput.classList.remove('wash-away');
+
+        // Increase stats
+        streak++;
+        points += 10;
+        streakEl.textContent = streak;
+        pointsEl.textContent = points;
+
+        // Save data
+        let today = new Date().toLocaleDateString();
+        lastPlayed = new Date().toDateString();
+        localStorage.setItem('lastPlayed', lastPlayed);
+        localStorage.setItem('streak', streak);
+        localStorage.setItem('points', points);
+
+        historyData.push({ date: today, thought: thought, points: points });
+        localStorage.setItem('historyData', JSON.stringify(historyData));
+
+        // Show animation screen
+        overlay.style.display = 'none';
+        animationScreen.style.display = 'block';
+
+        // Show quote with fade in
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        quoteEl.textContent = randomQuote;
         quoteEl.classList.add('visible');
-      }, 500);
 
-      setTimeout(() => {
-        animationScreen.style.display = 'none';
-        overlay.style.display = 'block';
-      }, 4500);
+        // Play quote sound
+        quoteSound.currentTime = 0;
+        quoteSound.play();
+
+        // Hide animation and return to main after 4.5s
+        setTimeout(() => {
+          quoteEl.classList.remove('visible');
+          animationScreen.style.display = 'none';
+          overlay.style.display = 'block';
+        }, 4500);
+      }, 3000); // match animation duration
     });
 
     historyBtn.addEventListener('click', () => {
