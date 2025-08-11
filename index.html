@@ -26,15 +26,122 @@
         </select>
         <button id="release-btn">Let it go</button>
       </div>
+      <button id="history-btn">Show History</button>
     </div>
-    <div id="stats">Streak: <span id="streak">0</span> day(s)<br>Points: <span id="points">0</span></div>
+    <div id="stats">Streak: <span id="streak">0</span> week(s)<br>Points: <span id="points">0</span></div>
   </div>
 
   <div id="animation-screen" class="hidden">
     <img src="assets/images/openart-image_GMAU2cag_1751971380639_raw.jpg" class="background"/>
-    <div id="quote">"You are not the thought, you are the awareness behind it."</div>
+    <div id="quote"></div>
   </div>
 
-  <script src="script.js"></script>
+  <div id="history-screen" class="hidden">
+    <h2>Game History</h2>
+    <ul id="history-list"></ul>
+    <button id="close-history">Close</button>
+  </div>
+
+  <script>
+    const quotes = [
+      "You are not the thought, you are the awareness behind it.",
+      "Letting go means to come to the realization that some people are a part of your history, but not a part of your destiny.",
+      "Happiness is letting go of what you think your life is supposed to look like.",
+      "Breathe. Let go. And remind yourself that this very moment is the only one you know you have for sure.",
+      "Sometimes letting things go is an act of far greater power than defending or hanging on."
+    ];
+
+    const streakEl = document.getElementById('streak');
+    const pointsEl = document.getElementById('points');
+    const releaseBtn = document.getElementById('release-btn');
+    const historyBtn = document.getElementById('history-btn');
+    const historyScreen = document.getElementById('history-screen');
+    const closeHistoryBtn = document.getElementById('close-history');
+    const historyList = document.getElementById('history-list');
+    const quoteEl = document.getElementById('quote');
+    const animationScreen = document.getElementById('animation-screen');
+    const overlay = document.getElementById('overlay');
+
+    let streak = parseInt(localStorage.getItem('streak')) || 0;
+    let points = parseInt(localStorage.getItem('points')) || 0;
+    let lastPlayed = localStorage.getItem('lastPlayed') || null;
+    let history = JSON.parse(localStorage.getItem('history')) || [];
+
+    streakEl.textContent = streak;
+    pointsEl.textContent = points;
+
+    function isMonday() {
+      return new Date().getDay() === 1; // 1 = Monday
+    }
+
+    function canPlayToday() {
+      if (!isMonday()) {
+        alert("Let's meet next week!");
+        return false;
+      }
+
+      let today = new Date().toDateString();
+
+      if (lastPlayed === today) {
+        alert("You have already played this Monday!");
+        return false;
+      }
+
+      // Streak handling
+      if (lastPlayed) {
+        let lastDate = new Date(lastPlayed);
+        let diffWeeks = Math.floor((new Date() - lastDate) / (1000 * 60 * 60 * 24 * 7));
+
+        if (diffWeeks > 1) {
+          streak = 0;
+          points = 0;
+        }
+      }
+
+      return true;
+    }
+
+    releaseBtn.addEventListener('click', () => {
+      if (!canPlayToday()) return;
+
+      // Increase streak and points
+      streak++;
+      points += 10;
+
+      streakEl.textContent = streak;
+      pointsEl.textContent = points;
+
+      let today = new Date().toDateString();
+      lastPlayed = today;
+      localStorage.setItem('lastPlayed', today);
+      localStorage.setItem('streak', streak);
+      localStorage.setItem('points', points);
+
+      // Save history
+      history.push({ date: today, points: points });
+      localStorage.setItem('history', JSON.stringify(history));
+
+      // Show one random quote
+      quoteEl.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+      overlay.classList.add('hidden');
+      animationScreen.classList.remove('hidden');
+    });
+
+    historyBtn.addEventListener('click', () => {
+      historyList.innerHTML = '';
+      history.forEach(entry => {
+        let li = document.createElement('li');
+        li.textContent = `${entry.date} - ${entry.points} points`;
+        historyList.appendChild(li);
+      });
+      historyScreen.classList.remove('hidden');
+      overlay.classList.add('hidden');
+    });
+
+    closeHistoryBtn.addEventListener('click', () => {
+      historyScreen.classList.add('hidden');
+      overlay.classList.remove('hidden');
+    });
+  </script>
 </body>
 </html>
